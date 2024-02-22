@@ -9,11 +9,15 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 var result []string
 var cities map[string][]float64
+
+var mutex sync.Mutex
+var wg sync.WaitGroup
 
 func main() {
 	startTime := time.Now()
@@ -40,8 +44,11 @@ func main() {
 	// step 2 now process the data
 	// fmt.Println(cities)
 	for k, temps := range cities {
-		processCityTemp(k, temps)
+		wg.Add(1)
+		go processCityTemp(k, temps)
 	}
+
+	wg.Wait()
 
 	fmt.Println(strings.Join(result, ", "))
 
@@ -75,5 +82,8 @@ func processCityTemp(name string, temps []float64) {
 	avg := sum / float64(len(temps))
 	avg = math.Ceil(avg*10) / 10
 
+	mutex.Lock()
+	defer mutex.Unlock()
 	result = append(result, fmt.Sprintf("%s=%.1f/%.1f/%.1f", name, temps[0], avg, temps[len(temps)-1]))
+	wg.Done()
 }
