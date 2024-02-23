@@ -19,27 +19,39 @@ var cities map[string][]float64
 var mutex sync.Mutex
 var wg sync.WaitGroup
 
+var count int = 0
+var ch chan string = make(chan string, 100)
+
 func main() {
 	startTime := time.Now()
 
 	cities = make(map[string][]float64)
 
 	//Read the file
-	file, err := os.Open("/Users/shyam/Documents/Work/1brc/measurements.txt")
-	// file, err := os.Open("./test.txt")
+	go func() {
+		file, err := os.Open("/Users/shyam/Documents/Work/1brc/measurements.txt")
+		// file, err := os.Open("./test.txt")
 
-	if err != nil {
-		log.Fatal("Could not read the file")
-	}
+		if err != nil {
+			log.Fatal("Could not read the file")
+		}
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
 
-	scanner := bufio.NewScanner(file)
+		result = []string{}
+		for scanner.Scan() {
+			ch <- scanner.Text()
+		}
 
-	result = []string{}
-	for scanner.Scan() {
-		processRow(scanner.Text())
+		close(ch)
+	}()
+
+	for v := range ch {
+		processRow(v)
 	}
 
 	fmt.Println("Time taken In Reading the File", (time.Now().UnixMilli()-startTime.UnixMilli())/1000)
+	fmt.Printf("Read total %d lines\n", count)
 
 	// step 2 now process the data
 	// fmt.Println(cities)
@@ -59,6 +71,7 @@ func main() {
 
 func processRow(data string) {
 	// fmt.Println(data)
+	count++
 	row := strings.Split(data, ";")
 	rowTemp, _ := strconv.ParseFloat(row[1], 64)
 
